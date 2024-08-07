@@ -1,0 +1,5 @@
+[build]
+target = "riscv64gc-unknown-none-elf"
+
+[target."riscv64gc-unknown-none-elf"]
+runner = "qemu-system-riscv64 -cpu rv64,pmp=off -s -machine virt -bios none -nographic -serial mon:stdio -kernel"
