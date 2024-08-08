@@ -7,30 +7,17 @@
 start:
         .cfi_startproc
 
+        # First we load the global_pointer
 .option push
 .option norelax
         la gp, global_pointer
 .option pop
 
+        # We ensure that paging is disabled
         csrw satp, zero
 
+        # We setup the stack
         la sp, stack_top
-
-        la t5, bss_start
-        la t6, bss_end
-bss_clear:
-        sd zero, (t5)
-        addi t5, t5, 8
-        bltu t5, t6, bss_clear
-
-        # Setup MPP (M-Mode previous privilege)
-        li t2, 0x1800
-        csrc mstatus, t2
-        li t3, 0x800
-        csrs mstatus, t3
-        # Setup MEPC (M-Mode Exception PC)
-        la t0, kmain
-        csrw mepc, t0
 
         tail kmain
 
