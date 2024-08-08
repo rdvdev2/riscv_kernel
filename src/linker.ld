@@ -1,12 +1,11 @@
 ENTRY(start);
 
 MEMORY {
-  kernel_space (rwx) : ORIGIN = 0x80200000, LENGTH = 0x10000000
+  kernel_space (rwx) : ORIGIN = 0x80200000, LENGTH = 1024M
 }
 
 SECTIONS {
   .text : ALIGN(4K) {
-    *(.init);
     *(.text);
   } > kernel_space
 

@@ -1,4 +1,4 @@
-.section .init
+.section .text
 
 .option norvc
 
