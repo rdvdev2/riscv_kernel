@@ -1,5 +1,6 @@
 use core::{cell::OnceCell, fmt::Write};
 
+use flat_device_tree::{node::FdtNode, Fdt};
 use spin::Mutex;
 
 pub static GLOBAL_UART: Mutex<OnceCell<&mut Uart>> = Mutex::new(OnceCell::new());
@@ -7,6 +8,7 @@ pub static GLOBAL_UART: Mutex<OnceCell<&mut Uart>> = Mutex::new(OnceCell::new())
 const LS_DR: u8 = 1 << 0;
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct Uart {
     buffer: u8,
     _f1: u8,
@@ -17,29 +19,33 @@ pub struct Uart {
     _f6: u8,
 }
 
-impl Uart {
-    // Safety: Caller must ensure this is the address of a ns16550a device
-    // Safety: Caller must ensure this is called only once
-    unsafe fn get(addr: *const u8) -> &'static mut Uart {
-        unsafe { &mut *(addr as *mut Uart) }
+impl super::Device for Uart {
+    fn find_compatible<'a, 'b>(fdt: &'b Fdt<'a>) -> Option<FdtNode<'b, 'a>> {
+        fdt.find_compatible(&["ns16550a"])
     }
 
-    // Safety: Caller must ensure this is the address of a ns16550a device
-    pub fn init(addr: *const u8) {
-        let _ = GLOBAL_UART.lock().set(unsafe { Self::get(addr) });
+    unsafe fn get(fdt_node: &flat_device_tree::node::FdtNode) -> Option<&'static mut Self> {
+        let addr = fdt_node.reg().next()?.starting_address;
+        unsafe { Some(&mut *(addr as *mut Uart)) }
     }
+}
 
-    pub fn put_byte(&mut self, b: u8) {
-        self.buffer = b;
+impl super::OutDevice<u8> for Uart {
+    fn send(&mut self, message: u8) {
+        self.buffer = message;
     }
+}
 
-    pub fn put_string(&mut self, s: &str) {
-        for b in s.bytes() {
-            self.put_byte(b);
+impl super::OutDevice<&str> for Uart {
+    fn send(&mut self, message: &str) {
+        for b in message.bytes() {
+            super::OutDevice::send(self, b);
         }
     }
+}
 
-    pub fn get_byte(&mut self) -> Option<u8> {
+impl super::InDevice<Option<u8>> for Uart {
+    fn receive(&mut self) -> Option<u8> {
         if self.line_status & LS_DR != 0 {
             Some(self.buffer)
         } else {
@@ -50,6 +56,6 @@ impl Uart {
 
 impl Write for Uart {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        Ok(self.put_string(s))
+        Ok(super::OutDevice::send(self, s))
     }
 }
