@@ -16,7 +16,7 @@ pub fn _print(args: core::fmt::Arguments) {
     use core::fmt::Write;
 
     GLOBAL_UART
-        .acquire()
+        .lock()
         .get_mut()
         .unwrap()
         .write_fmt(args)

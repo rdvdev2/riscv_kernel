@@ -10,7 +10,6 @@ use devices::uart::GLOBAL_UART;
 
 mod devices;
 mod io;
-mod spin;
 mod user;
 
 #[no_mangle]
@@ -31,8 +30,13 @@ unsafe fn user_mode_jump(function_address: usize) -> ! {
 #[panic_handler]
 fn panic_handler(panic_info: &PanicInfo) -> ! {
     // Safety: The thread panicked, therefore the handle won't be used anymore.
-    let mut uart_handle = unsafe { GLOBAL_UART.acquire_unchecked() };
-    let mut syscon_handle = unsafe { GLOBAL_SYSCON.acquire_unchecked() };
+    unsafe {
+        GLOBAL_UART.force_unlock();
+        GLOBAL_SYSCON.force_unlock();
+    }
+
+    let mut uart_handle = GLOBAL_UART.lock();
+    let mut syscon_handle = GLOBAL_SYSCON.lock();
 
     // Panic could happen before UART initialization
     if let Some(uart) = uart_handle.get_mut() {

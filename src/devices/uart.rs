@@ -1,8 +1,8 @@
 use core::{cell::OnceCell, fmt::Write};
 
-use crate::spin::SpinLock;
+use spin::Mutex;
 
-pub static GLOBAL_UART: SpinLock<OnceCell<&mut Uart>> = SpinLock::new(OnceCell::new());
+pub static GLOBAL_UART: Mutex<OnceCell<&mut Uart>> = Mutex::new(OnceCell::new());
 
 const LS_DR: u8 = 1 << 0;
 
@@ -26,7 +26,7 @@ impl Uart {
 
     // Safety: Caller must ensure this is the address of a ns16550a device
     pub fn init(addr: *const u8) {
-        let _ = GLOBAL_UART.acquire().set(unsafe { Self::get(addr) });
+        let _ = GLOBAL_UART.lock().set(unsafe { Self::get(addr) });
     }
 
     pub fn put_byte(&mut self, b: u8) {

@@ -1,8 +1,8 @@
 use core::cell::OnceCell;
 
-use crate::spin::SpinLock;
+use spin::Mutex;
 
-pub static GLOBAL_SYSCON: SpinLock<OnceCell<&mut Syscon>> = SpinLock::new(OnceCell::new());
+pub static GLOBAL_SYSCON: Mutex<OnceCell<&mut Syscon>> = Mutex::new(OnceCell::new());
 
 #[repr(transparent)]
 pub struct Syscon(u16);
@@ -14,7 +14,7 @@ impl Syscon {
     }
 
     pub fn init() {
-        let _ = GLOBAL_SYSCON.acquire().set(unsafe { Self::get() });
+        let _ = GLOBAL_SYSCON.lock().set(unsafe { Self::get() });
     }
 
     pub fn shutdown(&mut self) -> ! {
