@@ -1,3 +1,3 @@
 [language-server.rust-analyzer.config.check]
 targets = [ "riscv64gc-unknown-none-elf" ]
-allTargets = false
+# allTargets = false

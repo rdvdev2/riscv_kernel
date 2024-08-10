@@ -19,3 +19,22 @@ pub fn get_dtb() -> Fdt<'static> {
     let addr = locate_gdb_dtb().expect("GDB DTB not found");
     unsafe { Fdt::from_ptr(addr).expect("GDB DTB unparsable") }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use core::assert_matches::assert_matches;
+
+    #[test_case]
+    fn dtb_found() {
+        assert_matches!(locate_gdb_dtb(), Some(_))
+    }
+
+    #[test_case]
+    fn dtb_parsable() {
+        assert_matches!(
+            locate_gdb_dtb().and_then(|addr| Some(unsafe { Fdt::from_ptr(addr) })),
+            Some(Ok(_))
+        )
+    }
+}

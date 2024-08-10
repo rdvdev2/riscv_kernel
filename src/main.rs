@@ -1,5 +1,9 @@
 #![no_std]
 #![no_main]
+#![feature(custom_test_frameworks)]
+#![feature(assert_matches)]
+#![test_runner(crate::test_framework::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
 use core::arch::asm;
 use core::fmt::Write;
@@ -12,9 +16,15 @@ mod devices;
 mod io;
 mod user;
 
+#[cfg(test)]
+mod test_framework;
+
 #[no_mangle]
 extern "C" fn kmain() -> ! {
     devices::init_devices();
+
+    #[cfg(test)]
+    test_main();
 
     println!("System initialization done, jumping to usermode...");
 
@@ -40,7 +50,12 @@ fn panic_handler(panic_info: &PanicInfo) -> ! {
 
     // Panic could happen before UART initialization
     if let Some(uart) = uart_handle.get_mut() {
-        let _ = writeln!(uart, "--- KERNEL PANIC! ---");
+        #[cfg(test)]
+        test_framework::panic_hook(panic_info, uart);
+
+        #[cfg(not(test))]
+        let _ = writeln!(uart, "\n--- KERNEL PANIC! ---");
+
         let _ = writeln!(uart, "{}", panic_info);
     }
 
@@ -50,4 +65,12 @@ fn panic_handler(panic_info: &PanicInfo) -> ! {
     }
 
     loop {}
+}
+
+#[cfg(test)]
+mod test {
+    #[test_case]
+    fn trivial() {
+        assert_eq!(1, 1)
+    }
 }

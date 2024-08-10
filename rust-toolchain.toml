@@ -1,4 +1,4 @@
 [toolchain]
-channel = "1.80.1"
+channel = "nightly"
 targets = [ "riscv64gc-unknown-none-elf" ]
 components = [ "llvm-tools" ]
