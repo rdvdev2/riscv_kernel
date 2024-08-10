@@ -1,7 +1,7 @@
 fn main() {
     cc::Build::new()
         .file("src/entry.S")
-        .asm_flag("-march=rv64gc")
+        .asm_flag("-mabi=lp64d")
         .compile("entry");
     println!("cargo::rerun-if-changed=src/entry.S");
 

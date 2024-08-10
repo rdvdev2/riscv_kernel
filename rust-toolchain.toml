@@ -1,4 +1,4 @@
 [toolchain]
-channel = "1.77.2"
+channel = "1.80.1"
 targets = [ "riscv64gc-unknown-none-elf" ]
-components = [ "llvm-tools-preview" ]
+components = [ "llvm-tools" ]

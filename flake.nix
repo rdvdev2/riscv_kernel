@@ -13,15 +13,26 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
+        riscvPkgs = import nixpkgs {
+          crossSystem = {
+            config = "riscv64-unknown-linux-gnu";
+          };
+          inherit system;
+        };
       in
       {
-        devShells.default = pkgs.mkShell.override { stdenv = pkgs.clangStdenv; } {
+        devShells.default = pkgs.mkShell {
           nativeBuildInputs = with pkgs; [
             (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
             cargo-binutils
             qemu
             gdb
+            riscvPkgs.buildPackages.gcc
           ];
+
+          shellHook = ''
+            export CC=riscv64-unknown-linux-gnu-gcc
+          '';
         };
       }
     );
