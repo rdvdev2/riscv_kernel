@@ -1,22 +1,14 @@
 use flat_device_tree::{node::FdtNode, Fdt};
 
 mod dtb;
+pub mod sbi_debug_console;
 pub mod syscon;
-pub mod uart;
 
 pub fn init_devices() {
-    let dtb = dtb::get_dtb();
+    let _dtb = dtb::get_dtb();
 
+    sbi_debug_console::SbiDebugConsole::init();
     syscon::Syscon::init();
-
-    if let Some(node) = uart::Uart::find_compatible(&dtb) {
-        if let Some(uart_device) = unsafe { uart::Uart::get(&node) } {
-            uart::GLOBAL_UART
-                .lock()
-                .set(uart_device)
-                .expect("Global UART already set");
-        }
-    }
 }
 
 pub trait Device {

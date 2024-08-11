@@ -9,8 +9,7 @@ use core::arch::asm;
 use core::fmt::Write;
 use core::panic::PanicInfo;
 
-use devices::syscon::GLOBAL_SYSCON;
-use devices::uart::GLOBAL_UART;
+use devices::{sbi_debug_console::GLOBAL_DEBUG_CONSOLE, syscon::GLOBAL_SYSCON};
 use sbi::base::{sbi_get_impl_id, sbi_get_spec_version};
 
 mod devices;
@@ -50,22 +49,22 @@ unsafe fn user_mode_jump(function_address: usize) -> ! {
 fn panic_handler(panic_info: &PanicInfo) -> ! {
     // Safety: The thread panicked, therefore the handle won't be used anymore.
     unsafe {
-        GLOBAL_UART.force_unlock();
+        GLOBAL_DEBUG_CONSOLE.force_unlock();
         GLOBAL_SYSCON.force_unlock();
     }
 
-    let mut uart_handle = GLOBAL_UART.lock();
+    let mut debug_console_handle = GLOBAL_DEBUG_CONSOLE.lock();
     let mut syscon_handle = GLOBAL_SYSCON.lock();
 
     // Panic could happen before UART initialization
-    if let Some(uart) = uart_handle.get_mut() {
+    if let Some(debug_console) = debug_console_handle.get_mut() {
         #[cfg(test)]
-        test_framework::panic_hook(panic_info, uart);
+        test_framework::panic_hook(panic_info, debug_console);
 
         #[cfg(not(test))]
-        let _ = writeln!(uart, "\n--- KERNEL PANIC! ---");
+        let _ = writeln!(debug_console, "\n--- KERNEL PANIC! ---");
 
-        let _ = writeln!(uart, "{}", panic_info);
+        let _ = writeln!(debug_console, "{}", panic_info);
     }
 
     // Panic could happen before SYSCON initialization

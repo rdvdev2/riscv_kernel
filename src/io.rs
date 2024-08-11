@@ -1,4 +1,4 @@
-use crate::devices::uart::GLOBAL_UART;
+use crate::devices::sbi_debug_console::GLOBAL_DEBUG_CONSOLE;
 
 #[macro_export]
 macro_rules! print {
@@ -15,7 +15,7 @@ macro_rules! println {
 pub fn _print(args: core::fmt::Arguments) {
     use core::fmt::Write;
 
-    GLOBAL_UART
+    GLOBAL_DEBUG_CONSOLE
         .lock()
         .get_mut()
         .unwrap()
