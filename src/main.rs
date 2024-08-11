@@ -11,9 +11,11 @@ use core::panic::PanicInfo;
 
 use devices::syscon::GLOBAL_SYSCON;
 use devices::uart::GLOBAL_UART;
+use sbi::base::{sbi_get_impl_id, sbi_get_spec_version};
 
 mod devices;
 mod io;
+mod sbi;
 mod user;
 
 #[cfg(test)]
@@ -22,6 +24,13 @@ mod test_framework;
 #[no_mangle]
 extern "C" fn kmain() -> ! {
     devices::init_devices();
+
+    let sbi_version = sbi_get_spec_version();
+    let sbi_implementation_id = sbi_get_impl_id();
+    println!(
+        "Running on {}, with SBI v{}",
+        sbi_implementation_id, sbi_version
+    );
 
     #[cfg(test)]
     test_main();
