@@ -1,6 +1,6 @@
 use core::{fmt::Write, panic::PanicInfo};
 
-use crate::{print, println};
+use crate::{devices::sbi_system_reset::GLOBAL_SBI_SYSTEM_RESET, print, println};
 
 pub trait TestCase {
     fn run(&self) -> ();
@@ -18,8 +18,6 @@ where
 }
 
 pub fn test_runner(tests: &[&dyn TestCase]) {
-    use crate::devices::syscon::GLOBAL_SYSCON;
-
     println!("Running {} tests", tests.len());
 
     for test in tests {
@@ -28,7 +26,7 @@ pub fn test_runner(tests: &[&dyn TestCase]) {
 
     println!("Done");
 
-    GLOBAL_SYSCON.lock().get_mut().unwrap().shutdown();
+    GLOBAL_SBI_SYSTEM_RESET.lock().get_mut().unwrap().shutdown();
 }
 
 pub fn panic_hook<W: Write>(_panic_info: &PanicInfo, output_device: &mut W) {

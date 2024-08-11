@@ -2,6 +2,8 @@
 #![no_main]
 #![feature(custom_test_frameworks)]
 #![feature(assert_matches)]
+#![feature(never_type)]
+#![feature(exhaustive_patterns)]
 #![test_runner(crate::test_framework::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
@@ -9,7 +11,7 @@ use core::arch::asm;
 use core::fmt::Write;
 use core::panic::PanicInfo;
 
-use devices::{sbi_debug_console::GLOBAL_DEBUG_CONSOLE, syscon::GLOBAL_SYSCON};
+use devices::{sbi_debug_console::GLOBAL_DEBUG_CONSOLE, sbi_system_reset::GLOBAL_SBI_SYSTEM_RESET};
 use sbi::base::{sbi_get_impl_id, sbi_get_spec_version};
 
 mod devices;
@@ -50,11 +52,11 @@ fn panic_handler(panic_info: &PanicInfo) -> ! {
     // Safety: The thread panicked, therefore the handle won't be used anymore.
     unsafe {
         GLOBAL_DEBUG_CONSOLE.force_unlock();
-        GLOBAL_SYSCON.force_unlock();
+        GLOBAL_SBI_SYSTEM_RESET.force_unlock();
     }
 
     let mut debug_console_handle = GLOBAL_DEBUG_CONSOLE.lock();
-    let mut syscon_handle = GLOBAL_SYSCON.lock();
+    let mut system_reset_handle = GLOBAL_SBI_SYSTEM_RESET.lock();
 
     // Panic could happen before UART initialization
     if let Some(debug_console) = debug_console_handle.get_mut() {
@@ -68,8 +70,8 @@ fn panic_handler(panic_info: &PanicInfo) -> ! {
     }
 
     // Panic could happen before SYSCON initialization
-    if let Some(syscon) = syscon_handle.get_mut() {
-        syscon.shutdown();
+    if let Some(system_reset) = system_reset_handle.get_mut() {
+        system_reset.failure_shutdown();
     }
 
     loop {}
