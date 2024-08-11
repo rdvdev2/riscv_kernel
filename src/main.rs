@@ -11,7 +11,9 @@ use core::arch::asm;
 use core::fmt::Write;
 use core::panic::PanicInfo;
 
-use devices::{sbi_debug_console::GLOBAL_DEBUG_CONSOLE, sbi_system_reset::GLOBAL_SBI_SYSTEM_RESET};
+use devices::{
+    sbi_debug_console::GLOBAL_SBI_DEBUG_CONSOLE, sbi_system_reset::GLOBAL_SBI_SYSTEM_RESET,
+};
 use sbi::base::{sbi_get_impl_id, sbi_get_spec_version};
 
 mod devices;
@@ -51,11 +53,11 @@ unsafe fn user_mode_jump(function_address: usize) -> ! {
 fn panic_handler(panic_info: &PanicInfo) -> ! {
     // Safety: The thread panicked, therefore the handle won't be used anymore.
     unsafe {
-        GLOBAL_DEBUG_CONSOLE.force_unlock();
+        GLOBAL_SBI_DEBUG_CONSOLE.force_unlock();
         GLOBAL_SBI_SYSTEM_RESET.force_unlock();
     }
 
-    let mut debug_console_handle = GLOBAL_DEBUG_CONSOLE.lock();
+    let mut debug_console_handle = GLOBAL_SBI_DEBUG_CONSOLE.lock();
     let mut system_reset_handle = GLOBAL_SBI_SYSTEM_RESET.lock();
 
     // Panic could happen before UART initialization

@@ -43,3 +43,15 @@ pub fn sbi_system_reset(
     unsafe { raw_sbi_call_2_args::<EID, 0>(reset_type.into(), reset_reason.into()) }
         .map(|_| unreachable!("System reset success doesn't return"))
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use crate::sbi::base::sbi_probe_extension;
+
+    #[test_case]
+    fn extension_present() {
+        assert_eq!(sbi_probe_extension(EID), 1);
+    }
+}

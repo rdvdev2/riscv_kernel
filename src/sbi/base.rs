@@ -2,6 +2,8 @@ use super::{raw_sbi_call_0_args, raw_sbi_call_1_arg};
 
 use derive_more::Display;
 
+pub const EID: usize = 0x10;
+
 #[derive(Clone, Copy, Debug, Display)]
 #[display("{major}.{minor}")]
 pub struct SbiSpecVersion {
@@ -10,7 +12,7 @@ pub struct SbiSpecVersion {
 }
 
 pub fn sbi_get_spec_version() -> SbiSpecVersion {
-    let result = unsafe { raw_sbi_call_0_args::<0x10, 0>() }.expect("This call is infallible");
+    let result = unsafe { raw_sbi_call_0_args::<EID, 0>() }.expect("This call is infallible");
 
     SbiSpecVersion {
         major: (result >> 24) & 0x7F,
@@ -55,29 +57,29 @@ impl From<usize> for SbiImplementationId {
 }
 
 pub fn sbi_get_impl_id() -> SbiImplementationId {
-    unsafe { raw_sbi_call_0_args::<0x10, 1>() }
+    unsafe { raw_sbi_call_0_args::<EID, 1>() }
         .expect("This call is infallible")
         .into()
 }
 
 pub fn sbi_get_impl_version() -> usize {
-    unsafe { raw_sbi_call_0_args::<0x10, 2>() }.expect("This call is infallible")
+    unsafe { raw_sbi_call_0_args::<EID, 2>() }.expect("This call is infallible")
 }
 
 pub fn sbi_probe_extension(extension_id: usize) -> usize {
-    unsafe { raw_sbi_call_1_arg::<0x10, 3>(extension_id) }.expect("This call is infallible")
+    unsafe { raw_sbi_call_1_arg::<EID, 3>(extension_id) }.expect("This call is infallible")
 }
 
 pub fn sbi_get_mvendorid() -> usize {
-    unsafe { raw_sbi_call_0_args::<0x10, 4>() }.expect("This call is infallible")
+    unsafe { raw_sbi_call_0_args::<EID, 4>() }.expect("This call is infallible")
 }
 
 pub fn sbi_get_marchid() -> usize {
-    unsafe { raw_sbi_call_0_args::<0x10, 5>() }.expect("This call is infallible")
+    unsafe { raw_sbi_call_0_args::<EID, 5>() }.expect("This call is infallible")
 }
 
 pub fn sbi_get_mimpid() -> usize {
-    unsafe { raw_sbi_call_0_args::<0x10, 6>() }.expect("This call is infallible")
+    unsafe { raw_sbi_call_0_args::<EID, 6>() }.expect("This call is infallible")
 }
 
 #[cfg(test)]
@@ -96,7 +98,7 @@ mod test {
     }
 
     #[test_case]
-    fn base_extension_present() {
-        assert_eq!(sbi_probe_extension(0x10), 1);
+    fn extension_present() {
+        assert_eq!(sbi_probe_extension(EID), 1);
     }
 }

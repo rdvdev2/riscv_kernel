@@ -7,7 +7,7 @@ use crate::sbi::{
     debug_console::{self, sbi_debug_console_write},
 };
 
-pub static GLOBAL_DEBUG_CONSOLE: Mutex<OnceCell<SbiDebugConsole>> = Mutex::new(OnceCell::new());
+pub static GLOBAL_SBI_DEBUG_CONSOLE: Mutex<OnceCell<SbiDebugConsole>> = Mutex::new(OnceCell::new());
 
 #[derive(Clone, Copy)]
 pub struct SbiDebugConsole {
@@ -24,7 +24,7 @@ impl SbiDebugConsole {
     }
 
     pub fn init() {
-        let _ = GLOBAL_DEBUG_CONSOLE
+        let _ = GLOBAL_SBI_DEBUG_CONSOLE
             .lock()
             .set(Self::get().expect("Debug console should be available"));
     }

@@ -19,3 +19,15 @@ pub fn sbi_debug_console_read(s: &mut str) -> Result<usize, usize> {
 pub fn sbi_debug_console_write_byte(b: u8) -> Result<(), usize> {
     unsafe { raw_sbi_call_1_arg::<EID, 2>(b as usize) }.map(|_| ())
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use crate::sbi::base::sbi_probe_extension;
+
+    #[test_case]
+    fn extension_present() {
+        assert_eq!(sbi_probe_extension(EID), 1);
+    }
+}
