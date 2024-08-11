@@ -1,5 +1,3 @@
-use flat_device_tree::{node::FdtNode, Fdt};
-
 mod dtb;
 pub mod sbi_debug_console;
 pub mod syscon;
