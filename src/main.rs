@@ -18,6 +18,7 @@ use sbi::base::{sbi_get_impl_id, sbi_get_spec_version};
 
 mod devices;
 mod io;
+mod memory;
 mod sbi;
 mod user;
 
@@ -27,6 +28,7 @@ mod test_framework;
 #[no_mangle]
 extern "C" fn kmain() -> ! {
     devices::init_devices();
+    memory::init();
 
     let sbi_version = sbi_get_spec_version();
     let sbi_implementation_id = sbi_get_impl_id();
