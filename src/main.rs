@@ -20,6 +20,7 @@ mod devices;
 mod io;
 mod memory;
 mod sbi;
+mod trap;
 mod user;
 
 #[cfg(test)]
@@ -27,6 +28,7 @@ mod test_framework;
 
 #[no_mangle]
 extern "C" fn kmain() -> ! {
+    trap::init();
     devices::init_devices();
     memory::init();
 
