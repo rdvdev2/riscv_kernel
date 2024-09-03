@@ -30,4 +30,10 @@ SECTIONS {
   .eh_frame : ALIGN(4K) {
     *(.eh_frame);
   } > kernel_space
+
+  .riscv.attributes : {
+    *(.riscv.attributes);
+  } > kernel_space
+
+  PROVIDE(kernel_end = .);
 }

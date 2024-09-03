@@ -2,10 +2,16 @@ use core::arch::asm;
 
 use bitfield::bitfield;
 
-pub fn init() {
+const PAGE_SIZE: usize = 1 << 12;
+const MEGA_PAGE_SIZE: usize = PAGE_SIZE << 9;
+const GIGA_PAGE_SIZE: usize = MEGA_PAGE_SIZE << 9;
+
+// Safety: No address greater than kernel_end should be in use, all
+// physical pages following this address will be elegible for allocation.
+pub unsafe fn init(kernel_end: *const u8) {
     // For now we will limit ourselves to enable paging with identity mapping.
     // No permissions for U-mode
-    let pt = PageTable::new_giga_identity();
+    let pt = PageTable::new_giga_identity_minimal(kernel_end);
     unsafe { pt.install_as_root(0) };
 }
 
@@ -14,24 +20,37 @@ pub fn init() {
 pub struct PageTable([PageTableEntry; 512]);
 
 impl PageTable {
-    pub fn new() -> &'static mut Self {
-        // TODO: A page table can't be stack allocated, use this address
-        // for now (this code is held up by hopes and prayers)
-        let pt = unsafe { &mut *(0x80300000 as *mut Self) };
+    // Safety: addr must be page-aligned, and will be permanently allocated.
+    pub unsafe fn new(addr: *const u8) -> &'static mut Self {
+        let pt = unsafe { &mut *(addr as *mut Self) };
         for pte in pt.0.iter_mut() {
             *pte = PageTableEntry::new();
         }
         pt
     }
 
-    pub fn new_giga_identity() -> &'static mut Self {
-        let pt = Self::new();
+    // Safety: No address greater than kernel_end should be in use, all
+    // physical pages following this address will be elegible for allocation.
+    pub unsafe fn new_giga_identity_minimal(kernel_end: *const u8) -> &'static mut Self {
+        let kernel_end = kernel_end as usize;
+        let next_page = kernel_end - (kernel_end % PAGE_SIZE) + PAGE_SIZE;
+        let next_page = next_page as *const u8;
+        crate::println!("{:#0x}", next_page as usize);
+
+        let pt = unsafe { Self::new(next_page) };
 
         for (idx, pte) in pt.0.iter_mut().enumerate() {
+            let page_start = idx * GIGA_PAGE_SIZE;
             pte.set_permisions(PTEPermissionCombo::ReadWriteExecute);
             pte.set_ppn_2(idx as u32);
-            pte.set_valid(true);
+            pte.set_valid(page_start < (next_page as usize));
         }
+
+        let valid_count = pt.0.iter().filter(|pte| pte.is_valid()).count();
+        crate::println!(
+            "Initialized identity paging with {} valid pages.",
+            valid_count
+        );
 
         pt
     }
