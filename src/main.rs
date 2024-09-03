@@ -27,9 +27,9 @@ mod user;
 mod test_framework;
 
 #[no_mangle]
-extern "C" fn kmain() -> ! {
+extern "C" fn kmain(hart_id: usize, dtb_addr: *const u8) -> ! {
     trap::init();
-    devices::init_devices();
+    unsafe { devices::init_devices(dtb_addr) };
     memory::init();
 
     let sbi_version = sbi_get_spec_version();
