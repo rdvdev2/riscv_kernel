@@ -35,7 +35,6 @@ impl PageTable {
         let kernel_end = kernel_end as usize;
         let next_page = kernel_end - (kernel_end % PAGE_SIZE) + PAGE_SIZE;
         let next_page = next_page as *const u8;
-        crate::println!("{:#0x}", next_page as usize);
 
         let pt = unsafe { Self::new(next_page) };
 
