@@ -1,18 +1,39 @@
 use core::arch::asm;
 
 use bitfield::bitfield;
+use spin::RwLock;
 
-const PAGE_SIZE: usize = 1 << 12;
-const MEGA_PAGE_SIZE: usize = PAGE_SIZE << 9;
-const GIGA_PAGE_SIZE: usize = MEGA_PAGE_SIZE << 9;
+use super::memory_map::MemoryMap;
+
+pub const PAGE_SIZE: usize = 1 << 12;
+pub const MEGA_PAGE_SIZE: usize = PAGE_SIZE << 9;
+pub const GIGA_PAGE_SIZE: usize = MEGA_PAGE_SIZE << 9;
+
+static ROOT_PAGE_TABLE: RwLock<PageTable> = RwLock::new(PageTable::new());
 
 // Safety: No address greater than kernel_end should be in use, all
 // physical pages following this address will be elegible for allocation.
-pub unsafe fn init(kernel_end: *const u8) {
+pub unsafe fn init(memory_map: &MemoryMap) {
     // For now we will limit ourselves to enable paging with identity mapping.
     // No permissions for U-mode
-    let pt = PageTable::new_giga_identity_minimal(kernel_end);
-    unsafe { pt.install_as_root(0) };
+    PageTable::create_from_memory_map(memory_map);
+
+    // Safety: We can send the page table to the processor without locking
+    unsafe { (*ROOT_PAGE_TABLE.as_mut_ptr()).install_as_root(0) };
+}
+
+pub fn align_down(address: *const u8, alignment: usize) -> *const u8 {
+    let address = address as usize;
+
+    let aligned = address - (address % alignment);
+    aligned as *const u8
+}
+
+pub fn align_up(address: *const u8, alignment: usize) -> *const u8 {
+    let address = address as usize;
+
+    let aligned = address - (address % alignment) + alignment;
+    aligned as *const u8
 }
 
 #[repr(align(4096))]
@@ -20,29 +41,22 @@ pub unsafe fn init(kernel_end: *const u8) {
 pub struct PageTable([PageTableEntry; 512]);
 
 impl PageTable {
-    // Safety: addr must be page-aligned, and will be permanently allocated.
-    pub unsafe fn new(addr: *const u8) -> &'static mut Self {
-        let pt = unsafe { &mut *(addr as *mut Self) };
-        for pte in pt.0.iter_mut() {
-            *pte = PageTableEntry::new();
-        }
-        pt
+    pub const fn new() -> Self {
+        PageTable([PageTableEntry::new(); 512])
     }
 
-    // Safety: No address greater than kernel_end should be in use, all
-    // physical pages following this address will be elegible for allocation.
-    pub unsafe fn new_giga_identity_minimal(kernel_end: *const u8) -> &'static mut Self {
-        let kernel_end = kernel_end as usize;
-        let next_page = kernel_end - (kernel_end % PAGE_SIZE) + PAGE_SIZE;
-        let next_page = next_page as *const u8;
+    // Safety: This should be called only once
+    pub unsafe fn create_from_memory_map(memory_map: &MemoryMap) {
+        let mut pt = ROOT_PAGE_TABLE.write();
 
-        let pt = unsafe { Self::new(next_page) };
+        let platform = memory_map.get_platform();
+        let kernel_static = memory_map.get_kernel_static();
 
         for (idx, pte) in pt.0.iter_mut().enumerate() {
-            let page_start = idx * GIGA_PAGE_SIZE;
+            let page_start = (idx * GIGA_PAGE_SIZE) as *const u8;
             pte.set_permisions(PTEPermissionCombo::ReadWriteExecute);
             pte.set_ppn_2(idx as u32);
-            pte.set_valid(page_start < (next_page as usize));
+            pte.set_valid(platform.contains(&page_start) || kernel_static.contains(&page_start));
         }
 
         let valid_count = pt.0.iter().filter(|pte| pte.is_valid()).count();
@@ -50,8 +64,6 @@ impl PageTable {
             "Initialized identity paging with {} valid pages.",
             valid_count
         );
-
-        pt
     }
 
     pub unsafe fn install_as_root(&'static self, asid: u16) {
@@ -89,7 +101,7 @@ bitfield! {
 }
 
 impl PageTableEntry {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self(0)
     }
 }

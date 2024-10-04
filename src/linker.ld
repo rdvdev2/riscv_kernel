@@ -6,6 +6,7 @@ MEMORY {
 
 SECTIONS {
   .text : ALIGN(4K) {
+    PROVIDE(kernel_start = .);
     *(.text);
   } > kernel_space
 

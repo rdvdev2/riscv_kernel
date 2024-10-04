@@ -4,6 +4,7 @@
 #![feature(assert_matches)]
 #![feature(never_type)]
 #![feature(exhaustive_patterns)]
+#![feature(pointer_is_aligned_to)]
 #![test_runner(crate::test_framework::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
@@ -29,8 +30,8 @@ mod test_framework;
 #[no_mangle]
 extern "C" fn kmain(hart_id: usize, dtb_addr: *const u8) -> ! {
     trap::init();
-    unsafe { devices::init_devices(dtb_addr) };
-    memory::init();
+    let dtb = unsafe { devices::init_devices(dtb_addr) };
+    memory::init(&dtb);
 
     let sbi_version = sbi_get_spec_version();
     let sbi_implementation_id = sbi_get_impl_id();
