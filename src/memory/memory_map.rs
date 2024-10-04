@@ -2,8 +2,9 @@ use core::ops::{Range, RangeBounds};
 
 use flat_device_tree::Fdt;
 
-use crate::memory::paging::GIGA_PAGE_SIZE;
+use crate::memory::paging::{GIGA_PAGE_SIZE, PAGE_SIZE};
 
+#[derive(Debug)]
 pub struct MemoryMap {
     physical_space: Range<*const u8>,
     // NOTE: Platform is assumed to comprehend all the space below the kernel
@@ -45,5 +46,12 @@ impl MemoryMap {
 
     pub fn get_kernel_dynamic(&self) -> Option<&Range<*const u8>> {
         self.kernel_dynamic.as_ref()
+    }
+
+    pub fn reserve_kernel_dynamic(&mut self, size: usize) {
+        assert!(self.kernel_dynamic.is_none());
+        assert_eq!(size % GIGA_PAGE_SIZE, 0);
+        self.kernel_dynamic =
+            Some(self.kernel_static.end..self.kernel_static.end.wrapping_add(size));
     }
 }

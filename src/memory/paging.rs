@@ -1,7 +1,6 @@
 use core::arch::asm;
 
 use bitfield::bitfield;
-use spin::RwLock;
 
 use super::memory_map::MemoryMap;
 
@@ -9,17 +8,17 @@ pub const PAGE_SIZE: usize = 1 << 12;
 pub const MEGA_PAGE_SIZE: usize = PAGE_SIZE << 9;
 pub const GIGA_PAGE_SIZE: usize = MEGA_PAGE_SIZE << 9;
 
-static ROOT_PAGE_TABLE: RwLock<PageTable> = RwLock::new(PageTable::new());
+// TODO: Modification safety
+static mut ROOT_PAGE_TABLE: PageTable = PageTable::new();
 
-// Safety: No address greater than kernel_end should be in use, all
-// physical pages following this address will be elegible for allocation.
+// Safety: This should be called only once
 pub unsafe fn init(memory_map: &MemoryMap) {
     // For now we will limit ourselves to enable paging with identity mapping.
     // No permissions for U-mode
     PageTable::create_from_memory_map(memory_map);
 
-    // Safety: We can send the page table to the processor without locking
-    unsafe { (*ROOT_PAGE_TABLE.as_mut_ptr()).install_as_root(0) };
+    // Safety: The value is never moved
+    unsafe { ROOT_PAGE_TABLE.install_as_root(0) };
 }
 
 pub fn align_down(address: *const u8, alignment: usize) -> *const u8 {
@@ -47,16 +46,22 @@ impl PageTable {
 
     // Safety: This should be called only once
     pub unsafe fn create_from_memory_map(memory_map: &MemoryMap) {
-        let mut pt = ROOT_PAGE_TABLE.write();
+        #[allow(static_mut_refs)]
+        let pt = unsafe { &mut ROOT_PAGE_TABLE };
 
         let platform = memory_map.get_platform();
         let kernel_static = memory_map.get_kernel_static();
+        let kernel_dynamic = memory_map.get_kernel_dynamic();
 
         for (idx, pte) in pt.0.iter_mut().enumerate() {
             let page_start = (idx * GIGA_PAGE_SIZE) as *const u8;
             pte.set_permisions(PTEPermissionCombo::ReadWriteExecute);
             pte.set_ppn_2(idx as u32);
-            pte.set_valid(platform.contains(&page_start) || kernel_static.contains(&page_start));
+            pte.set_valid(
+                platform.contains(&page_start)
+                    || kernel_static.contains(&page_start)
+                    || kernel_dynamic.is_some_and(|x| x.contains(&page_start)),
+            );
         }
 
         let valid_count = pt.0.iter().filter(|pte| pte.is_valid()).count();
@@ -66,6 +71,7 @@ impl PageTable {
         );
     }
 
+    // Safety: Value can't be moved or destroyed while installed
     pub unsafe fn install_as_root(&'static self, asid: u16) {
         let ppn = ((self as *const _) as usize) >> 12;
         let mode = 8; // MODE=8 enable Sv39 paging

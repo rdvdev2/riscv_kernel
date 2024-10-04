@@ -29,6 +29,6 @@ pub fn test_runner(tests: &[&dyn TestCase]) {
     GLOBAL_SBI_SYSTEM_RESET.lock().get_mut().unwrap().shutdown();
 }
 
-pub fn panic_hook<W: Write>(_panic_info: &PanicInfo, output_device: &mut W) {
-    let _ = writeln!(output_device, "FAIL");
+pub fn panic_hook<W: Write>(panic_info: &PanicInfo, output_device: &mut W) {
+    let _ = writeln!(output_device, "FAIL\nDetails:\n{}\n\n", panic_info);
 }
