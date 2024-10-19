@@ -18,7 +18,7 @@ pub unsafe fn init(memory_map: &MemoryMap) {
     PageTable::create_from_memory_map(memory_map);
 
     // Safety: The value is never moved
-    unsafe { ROOT_PAGE_TABLE.install_as_root(0) };
+    unsafe { PageTable::install_as_root(&raw const ROOT_PAGE_TABLE, 0) };
 }
 
 pub fn align_down(address: *const u8, alignment: usize) -> *const u8 {
@@ -72,8 +72,8 @@ impl PageTable {
     }
 
     // Safety: Value can't be moved or destroyed while installed
-    pub unsafe fn install_as_root(&'static self, asid: u16) {
-        let ppn = ((self as *const _) as usize) >> 12;
+    pub unsafe fn install_as_root(pt: *const Self, asid: u16) {
+        let ppn = (pt as usize) >> 12;
         let mode = 8; // MODE=8 enable Sv39 paging
 
         let ppn = ppn as u64;
